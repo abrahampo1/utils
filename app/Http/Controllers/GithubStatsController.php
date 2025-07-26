@@ -13,7 +13,7 @@ class GithubStatsController extends Controller
     {
         // Logic to fetch total commits from GitHub API
         $username = $request->route("username");
-        $from = $request->input("from", "2019-01-01T00:00:00Z");
+        $from = $request->input("from", "1943-01-01T00:00:00Z");
         $to = $request->input("to", now()->toIso8601String());
 
         $cacheKey = 'github_total_commits_' . $username . '_' . $from . '_' . $to;
