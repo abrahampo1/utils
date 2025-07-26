@@ -16,7 +16,7 @@ class GithubStatsController extends Controller
         $from = $request->input("from", "1943-01-01T00:00:00Z");
         $to = $request->input("to", now()->toIso8601String());
 
-        $cacheKey = 'github_total_commits_' . $username . '_' . $from . '_' . $to;
+        $cacheKey = 'github_total_commits_' . $username . '_' . $from;
         $total = Cache::remember($cacheKey, 3600, function () use ($username, $from, $to) {
             $query = <<<'GRAPHQL'
             query($username: String!, $from: DateTime!, $to: DateTime!) {
