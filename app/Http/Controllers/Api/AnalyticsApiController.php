@@ -59,6 +59,11 @@ class AnalyticsApiController extends Controller
     {
         $data = $request->validate([
             'code' => ['required', 'string'],
+            'utm_source' => ['nullable', 'string', 'max:255'],
+            'utm_medium' => ['nullable', 'string', 'max:255'],
+            'utm_campaign' => ['nullable', 'string', 'max:255'],
+            'utm_term' => ['nullable', 'string', 'max:255'],
+            'utm_content' => ['nullable', 'string', 'max:255'],
         ]);
 
         $link = TrackingLink::active()->where('code', $data['code'])->first();
@@ -79,6 +84,11 @@ class AnalyticsApiController extends Controller
             'browser_version' => $agent->version($agent->browser()) ?: null,
             'platform' => $agent->platform() ?: null,
             'device_type' => $this->getDeviceType($agent),
+            'utm_source' => $data['utm_source'] ?? null,
+            'utm_medium' => $data['utm_medium'] ?? null,
+            'utm_campaign' => $data['utm_campaign'] ?? null,
+            'utm_term' => $data['utm_term'] ?? null,
+            'utm_content' => $data['utm_content'] ?? null,
             'clicked_at' => now(),
         ]);
 

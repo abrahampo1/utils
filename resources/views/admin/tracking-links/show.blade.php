@@ -56,7 +56,74 @@
     </div>
 </div>
 
-{{-- Lists Row --}}
+{{-- UTM Charts Row --}}
+<div class="grid grid-cols-1 gap-6 lg:grid-cols-2 mb-8">
+    {{-- Source Breakdown --}}
+    <div class="bg-white border-black border border-r-3 border-b-3 p-6">
+        <h3 class="text-lg tinos-bold text-black mb-4">Traffic Sources</h3>
+        @if($sourceBreakdown->isEmpty())
+            <p class="text-sm text-gray-600">No UTM data yet.</p>
+        @else
+            <canvas id="sourceChart" height="200"></canvas>
+        @endif
+    </div>
+
+    {{-- UTM Sources List --}}
+    <div class="bg-white border-black border border-r-3 border-b-3 p-6">
+        <h3 class="text-lg tinos-bold text-black mb-4">Top Sources</h3>
+        @if($topSources->isEmpty())
+            <p class="text-sm text-gray-600">No UTM source data yet.</p>
+        @else
+        <ul class="space-y-3">
+            @foreach($topSources as $source)
+            <li class="flex items-center justify-between border-b border-gray-200 pb-2">
+                <span class="text-sm text-black">{{ $source->utm_source }}</span>
+                <span class="text-sm tinos-bold text-black">{{ number_format($source->count) }}</span>
+            </li>
+            @endforeach
+        </ul>
+        @endif
+    </div>
+</div>
+
+{{-- UTM Details Row --}}
+<div class="grid grid-cols-1 gap-6 lg:grid-cols-2 mb-8">
+    {{-- Top Mediums --}}
+    <div class="bg-white border-black border border-r-3 border-b-3 p-6">
+        <h3 class="text-lg tinos-bold text-black mb-4">Top Mediums</h3>
+        @if($topMediums->isEmpty())
+            <p class="text-sm text-gray-600">No UTM medium data yet.</p>
+        @else
+        <ul class="space-y-3">
+            @foreach($topMediums as $medium)
+            <li class="flex items-center justify-between border-b border-gray-200 pb-2">
+                <span class="text-sm text-black">{{ $medium->utm_medium }}</span>
+                <span class="text-sm tinos-bold text-black">{{ number_format($medium->count) }}</span>
+            </li>
+            @endforeach
+        </ul>
+        @endif
+    </div>
+
+    {{-- Top Campaigns --}}
+    <div class="bg-white border-black border border-r-3 border-b-3 p-6">
+        <h3 class="text-lg tinos-bold text-black mb-4">Top Campaigns</h3>
+        @if($topCampaigns->isEmpty())
+            <p class="text-sm text-gray-600">No UTM campaign data yet.</p>
+        @else
+        <ul class="space-y-3">
+            @foreach($topCampaigns as $campaign)
+            <li class="flex items-center justify-between border-b border-gray-200 pb-2">
+                <span class="text-sm text-black">{{ $campaign->utm_campaign }}</span>
+                <span class="text-sm tinos-bold text-black">{{ number_format($campaign->count) }}</span>
+            </li>
+            @endforeach
+        </ul>
+        @endif
+    </div>
+</div>
+
+{{-- Technical Row --}}
 <div class="grid grid-cols-1 gap-6 lg:grid-cols-3 mb-8">
     {{-- Top Browsers --}}
     <div class="bg-white border-black border border-r-3 border-b-3 p-6">
@@ -113,18 +180,17 @@
 @section('scripts')
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <script>
+const chartColors = ['#000000', '#374151', '#6B7280', '#9CA3AF', '#D1D5DB', '#E5E7EB'];
+
 // Clicks Trend Chart
 const clicksData = @json($clicksTrend);
-const dates = clicksData.map(d => d.date);
-const clicks = clicksData.map(d => d.clicks);
-
 new Chart(document.getElementById('clicksTrendChart').getContext('2d'), {
     type: 'line',
     data: {
-        labels: dates,
+        labels: clicksData.map(d => d.date),
         datasets: [{
             label: 'Clicks',
-            data: clicks,
+            data: clicksData.map(d => d.clicks),
             borderColor: '#000000',
             backgroundColor: 'rgba(0, 0, 0, 0.05)',
             fill: true,
@@ -133,11 +199,7 @@ new Chart(document.getElementById('clicksTrendChart').getContext('2d'), {
     },
     options: {
         responsive: true,
-        plugins: {
-            legend: {
-                display: false,
-            }
-        },
+        plugins: { legend: { display: false } },
         scales: {
             x: { grid: { display: false } },
             y: { beginAtZero: true, ticks: { precision: 0 } }
@@ -148,14 +210,13 @@ new Chart(document.getElementById('clicksTrendChart').getContext('2d'), {
 // Device Breakdown Chart
 const deviceData = @json($deviceBreakdown);
 if (deviceData.length > 0) {
-    const deviceColors = ['#000000', '#6B7280', '#9CA3AF', '#D1D5DB', '#E5E7EB'];
     new Chart(document.getElementById('deviceChart').getContext('2d'), {
         type: 'doughnut',
         data: {
             labels: deviceData.map(d => d.device_type),
             datasets: [{
                 data: deviceData.map(d => d.count),
-                backgroundColor: deviceColors.slice(0, deviceData.length),
+                backgroundColor: chartColors.slice(0, deviceData.length),
                 borderWidth: 2,
                 borderColor: '#ffffff',
             }]
@@ -163,10 +224,30 @@ if (deviceData.length > 0) {
         options: {
             responsive: true,
             plugins: {
-                legend: {
-                    position: 'bottom',
-                    labels: { font: { family: 'Tinos' }, padding: 16 }
-                }
+                legend: { position: 'bottom', labels: { font: { family: 'Tinos' }, padding: 16 } }
+            }
+        }
+    });
+}
+
+// Source Breakdown Chart
+const sourceData = @json($sourceBreakdown);
+if (sourceData.length > 0) {
+    new Chart(document.getElementById('sourceChart').getContext('2d'), {
+        type: 'doughnut',
+        data: {
+            labels: sourceData.map(d => d.utm_source),
+            datasets: [{
+                data: sourceData.map(d => d.count),
+                backgroundColor: chartColors.slice(0, sourceData.length),
+                borderWidth: 2,
+                borderColor: '#ffffff',
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'bottom', labels: { font: { family: 'Tinos' }, padding: 16 } }
             }
         }
     });

@@ -12,6 +12,7 @@ class LinkClick extends Model
     protected $fillable = [
         'tracking_link_id', 'ip_address', 'user_agent', 'referer',
         'browser', 'browser_version', 'platform', 'device_type',
+        'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content',
         'country', 'clicked_at',
     ];
 

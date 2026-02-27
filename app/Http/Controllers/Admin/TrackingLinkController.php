@@ -110,10 +110,44 @@ class TrackingLinkController extends Controller
             ->limit(5)
             ->get();
 
+        // UTM analytics
+        $topSources = $trackingLink->clicks()
+            ->select('utm_source', DB::raw('COUNT(*) as count'))
+            ->whereNotNull('utm_source')
+            ->groupBy('utm_source')
+            ->orderByDesc('count')
+            ->limit(5)
+            ->get();
+
+        $topMediums = $trackingLink->clicks()
+            ->select('utm_medium', DB::raw('COUNT(*) as count'))
+            ->whereNotNull('utm_medium')
+            ->groupBy('utm_medium')
+            ->orderByDesc('count')
+            ->limit(5)
+            ->get();
+
+        $topCampaigns = $trackingLink->clicks()
+            ->select('utm_campaign', DB::raw('COUNT(*) as count'))
+            ->whereNotNull('utm_campaign')
+            ->groupBy('utm_campaign')
+            ->orderByDesc('count')
+            ->limit(5)
+            ->get();
+
+        // Source breakdown for doughnut chart
+        $sourceBreakdown = $trackingLink->clicks()
+            ->select('utm_source', DB::raw('COUNT(*) as count'))
+            ->whereNotNull('utm_source')
+            ->groupBy('utm_source')
+            ->orderByDesc('count')
+            ->get();
+
         return view('admin.tracking-links.show', compact(
             'trackingLink', 'totalClicks', 'recentClicks',
             'topBrowser', 'topDevice', 'clicksTrend', 'deviceBreakdown',
-            'topBrowsers', 'topPlatforms', 'topReferrers'
+            'topBrowsers', 'topPlatforms', 'topReferrers',
+            'topSources', 'topMediums', 'topCampaigns', 'sourceBreakdown'
         ));
     }
 
