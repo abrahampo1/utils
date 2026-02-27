@@ -69,7 +69,8 @@ class DashboardController extends Controller
             ->select('referer');
         $pageReferrers = PageView::where('viewed_at', '>=', $thirtyDaysAgo)
             ->whereNotNull('referer')
-            ->where('referer', '!=', '');
+            ->where('referer', '!=', '')
+            ->select('referer');
         $topReferrers = $pageReferrers->union($postReferrers)
             ->get()
             ->groupBy('referer')
