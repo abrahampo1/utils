@@ -67,4 +67,55 @@ class GithubStatsController extends Controller
             'to' => $to
         ]);
     }
+
+    public function getContributions(Request $request)
+    {
+        $username = $request->route("username");
+
+        $cacheKey = 'github_contributions_' . $username;
+        $data = Cache::remember($cacheKey, 3600, function () use ($username) {
+            $query = <<<'GRAPHQL'
+            query($username: String!) {
+                user(login: $username) {
+                    contributionsCollection {
+                        contributionCalendar {
+                            totalContributions
+                            weeks {
+                                contributionDays {
+                                    contributionCount
+                                    date
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            GRAPHQL;
+
+            $result = GitHub::api('graphql')->execute($query, [
+                'username' => $username,
+            ]);
+
+            $calendar = $result['data']['user']['contributionsCollection']['contributionCalendar'] ?? null;
+
+            if (!$calendar) {
+                return null;
+            }
+
+            return [
+                'total_contributions' => $calendar['totalContributions'],
+                'weeks' => $calendar['weeks'],
+            ];
+        });
+
+        if (!$data) {
+            return response()->json(['error' => 'Unable to fetch contributions'], 404);
+        }
+
+        return response()->json([
+            'username' => $username,
+            'total_contributions' => $data['total_contributions'],
+            'weeks' => $data['weeks'],
+        ]);
+    }
 }
