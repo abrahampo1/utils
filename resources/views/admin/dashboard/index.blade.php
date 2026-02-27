@@ -5,43 +5,43 @@
 @section('content')
 {{-- Stat Cards --}}
 <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-8">
-    <div class="bg-white overflow-hidden shadow rounded-lg p-5">
-        <div class="text-sm font-medium text-gray-500">Total Views (30d)</div>
-        <div class="mt-1 text-3xl font-bold text-gray-900">{{ number_format($totalViews) }}</div>
+    <div class="bg-white border-black border border-r-3 border-b-3 p-5">
+        <div class="text-sm text-gray-600 tinos-regular">Total Views (30d)</div>
+        <div class="mt-1 text-3xl tinos-bold text-black">{{ number_format($totalViews) }}</div>
     </div>
-    <div class="bg-white overflow-hidden shadow rounded-lg p-5">
-        <div class="text-sm font-medium text-gray-500">Unique Visitors (30d)</div>
-        <div class="mt-1 text-3xl font-bold text-gray-900">{{ number_format($uniqueVisitors) }}</div>
+    <div class="bg-white border-black border border-r-3 border-b-3 p-5">
+        <div class="text-sm text-gray-600 tinos-regular">Unique Visitors (30d)</div>
+        <div class="mt-1 text-3xl tinos-bold text-black">{{ number_format($uniqueVisitors) }}</div>
     </div>
-    <div class="bg-white overflow-hidden shadow rounded-lg p-5">
-        <div class="text-sm font-medium text-gray-500">Published Posts</div>
-        <div class="mt-1 text-3xl font-bold text-gray-900">{{ $counts['published'] }}</div>
+    <div class="bg-white border-black border border-r-3 border-b-3 p-5">
+        <div class="text-sm text-gray-600 tinos-regular">Published Posts</div>
+        <div class="mt-1 text-3xl tinos-bold text-black">{{ $counts['published'] }}</div>
     </div>
-    <div class="bg-white overflow-hidden shadow rounded-lg p-5">
-        <div class="text-sm font-medium text-gray-500">Projects</div>
-        <div class="mt-1 text-3xl font-bold text-gray-900">{{ $counts['projects'] }}</div>
+    <div class="bg-white border-black border border-r-3 border-b-3 p-5">
+        <div class="text-sm text-gray-600 tinos-regular">Projects</div>
+        <div class="mt-1 text-3xl tinos-bold text-black">{{ $counts['projects'] }}</div>
     </div>
 </div>
 
 {{-- Charts Row --}}
 <div class="grid grid-cols-1 gap-6 lg:grid-cols-2 mb-8">
     {{-- Views Trend --}}
-    <div class="bg-white shadow rounded-lg p-6">
-        <h3 class="text-lg font-medium text-gray-900 mb-4">Views Trend (30 days)</h3>
+    <div class="bg-white border-black border border-r-3 border-b-3 p-6">
+        <h3 class="text-lg tinos-bold text-black mb-4">Views Trend (30 days)</h3>
         <canvas id="viewsTrendChart" height="200"></canvas>
     </div>
 
     {{-- Popular Posts --}}
-    <div class="bg-white shadow rounded-lg p-6">
-        <h3 class="text-lg font-medium text-gray-900 mb-4">Popular Posts</h3>
+    <div class="bg-white border-black border border-r-3 border-b-3 p-6">
+        <h3 class="text-lg tinos-bold text-black mb-4">Popular Posts</h3>
         @if($popularPosts->isEmpty())
-            <p class="text-sm text-gray-500">No views yet.</p>
+            <p class="text-sm text-gray-600">No views yet.</p>
         @else
         <ul class="space-y-3">
             @foreach($popularPosts as $post)
-            <li class="flex items-center justify-between">
-                <a href="{{ route('posts.edit', $post) }}" class="text-sm text-indigo-600 hover:underline truncate mr-3">{{ $post->title }}</a>
-                <span class="text-sm font-medium text-gray-900 whitespace-nowrap">{{ number_format($post->views_count) }} views</span>
+            <li class="flex items-center justify-between border-b border-gray-200 pb-2">
+                <a href="{{ route('posts.edit', $post) }}" class="text-sm text-black hover:underline truncate mr-3">{{ $post->title }}</a>
+                <span class="text-sm tinos-bold text-black whitespace-nowrap">{{ number_format($post->views_count) }} views</span>
             </li>
             @endforeach
         </ul>
@@ -52,16 +52,16 @@
 {{-- Bottom Row --}}
 <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
     {{-- Top Referrers --}}
-    <div class="bg-white shadow rounded-lg p-6">
-        <h3 class="text-lg font-medium text-gray-900 mb-4">Top Referrers</h3>
+    <div class="bg-white border-black border border-r-3 border-b-3 p-6">
+        <h3 class="text-lg tinos-bold text-black mb-4">Top Referrers</h3>
         @if($topReferrers->isEmpty())
-            <p class="text-sm text-gray-500">No referrer data yet.</p>
+            <p class="text-sm text-gray-600">No referrer data yet.</p>
         @else
         <ul class="space-y-3">
             @foreach($topReferrers as $ref)
-            <li class="flex items-center justify-between">
+            <li class="flex items-center justify-between border-b border-gray-200 pb-2">
                 <span class="text-sm text-gray-600 truncate mr-3">{{ $ref->referer }}</span>
-                <span class="text-sm font-medium text-gray-900 whitespace-nowrap">{{ number_format($ref->count) }}</span>
+                <span class="text-sm tinos-bold text-black whitespace-nowrap">{{ number_format($ref->count) }}</span>
             </li>
             @endforeach
         </ul>
@@ -69,21 +69,21 @@
     </div>
 
     {{-- Recent Posts --}}
-    <div class="bg-white shadow rounded-lg p-6">
-        <h3 class="text-lg font-medium text-gray-900 mb-4">Recent Posts</h3>
+    <div class="bg-white border-black border border-r-3 border-b-3 p-6">
+        <h3 class="text-lg tinos-bold text-black mb-4">Recent Posts</h3>
         @if($recentPosts->isEmpty())
-            <p class="text-sm text-gray-500">No posts yet.</p>
+            <p class="text-sm text-gray-600">No posts yet.</p>
         @else
         <ul class="space-y-3">
             @foreach($recentPosts as $post)
-            <li class="flex items-center justify-between">
+            <li class="flex items-center justify-between border-b border-gray-200 pb-2">
                 <div>
-                    <a href="{{ route('posts.edit', $post) }}" class="text-sm text-indigo-600 hover:underline">{{ $post->title }}</a>
-                    <span class="ml-2 inline-flex rounded-full px-2 text-xs font-semibold leading-5 {{ $post->status === 'published' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800' }}">
+                    <a href="{{ route('posts.edit', $post) }}" class="text-sm text-black hover:underline">{{ $post->title }}</a>
+                    <span class="ml-2 inline-flex border-black border px-2 py-0.5 text-xs tinos-regular-italic">
                         {{ ucfirst($post->status) }}
                     </span>
                 </div>
-                <span class="text-xs text-gray-500 whitespace-nowrap">{{ $post->created_at->format('M d') }}</span>
+                <span class="text-xs text-gray-600 whitespace-nowrap">{{ $post->created_at->format('M d') }}</span>
             </li>
             @endforeach
         </ul>
@@ -103,8 +103,8 @@ new Chart(ctx, {
         datasets: [{
             label: 'Views',
             data: trendData.map(d => d.views),
-            borderColor: '#4f46e5',
-            backgroundColor: 'rgba(79, 70, 229, 0.1)',
+            borderColor: '#000000',
+            backgroundColor: 'rgba(0, 0, 0, 0.05)',
             fill: true,
             tension: 0.3,
         }]
