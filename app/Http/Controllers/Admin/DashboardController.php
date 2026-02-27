@@ -29,7 +29,9 @@ class DashboardController extends Controller
         $popularPosts = Post::withCount(['views' => function ($query) use ($thirtyDaysAgo) {
                 $query->where('viewed_at', '>=', $thirtyDaysAgo);
             }])
-            ->having('views_count', '>', 0)
+            ->whereHas('views', function ($query) use ($thirtyDaysAgo) {
+                $query->where('viewed_at', '>=', $thirtyDaysAgo);
+            })
             ->orderByDesc('views_count')
             ->limit(5)
             ->get(['id', 'title', 'slug']);
