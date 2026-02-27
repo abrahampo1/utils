@@ -89,6 +89,90 @@
     </div>
 </div>
 
+{{-- UTM Analytics Row --}}
+<div class="grid grid-cols-1 gap-6 lg:grid-cols-2 mb-8">
+    {{-- Source Breakdown Chart --}}
+    <div class="bg-white border-black border border-r-3 border-b-3 p-6">
+        <h3 class="text-lg tinos-bold text-black mb-4">Traffic Sources (30d)</h3>
+        @if($utmSourceBreakdown->isEmpty())
+            <p class="text-sm text-gray-600">No UTM data yet.</p>
+        @else
+            <canvas id="utmSourceChart" height="200"></canvas>
+        @endif
+    </div>
+
+    {{-- Top Tracking Links --}}
+    <div class="bg-white border-black border border-r-3 border-b-3 p-6">
+        <h3 class="text-lg tinos-bold text-black mb-4">Top Tracking Links (30d)</h3>
+        @if($topTrackingLinks->isEmpty())
+            <p class="text-sm text-gray-600">No link clicks yet.</p>
+        @else
+        <ul class="space-y-3">
+            @foreach($topTrackingLinks as $link)
+            <li class="flex items-center justify-between border-b border-gray-200 pb-2">
+                <a href="{{ route('tracking-links.show', $link) }}" class="text-sm text-black hover:underline truncate mr-3">{{ $link->name }}</a>
+                <span class="text-sm tinos-bold text-black whitespace-nowrap">{{ number_format($link->clicks_count) }} clicks</span>
+            </li>
+            @endforeach
+        </ul>
+        @endif
+    </div>
+</div>
+
+{{-- UTM Details Row --}}
+<div class="grid grid-cols-1 gap-6 lg:grid-cols-3 mb-8">
+    {{-- Top Sources --}}
+    <div class="bg-white border-black border border-r-3 border-b-3 p-6">
+        <h3 class="text-lg tinos-bold text-black mb-4">Top Sources</h3>
+        @if($utmSources->isEmpty())
+            <p class="text-sm text-gray-600">No UTM source data yet.</p>
+        @else
+        <ul class="space-y-3">
+            @foreach($utmSources as $source)
+            <li class="flex items-center justify-between border-b border-gray-200 pb-2">
+                <span class="text-sm text-black">{{ $source->utm_source }}</span>
+                <span class="text-sm tinos-bold text-black">{{ number_format($source->count) }}</span>
+            </li>
+            @endforeach
+        </ul>
+        @endif
+    </div>
+
+    {{-- Top Mediums --}}
+    <div class="bg-white border-black border border-r-3 border-b-3 p-6">
+        <h3 class="text-lg tinos-bold text-black mb-4">Top Mediums</h3>
+        @if($utmMediums->isEmpty())
+            <p class="text-sm text-gray-600">No UTM medium data yet.</p>
+        @else
+        <ul class="space-y-3">
+            @foreach($utmMediums as $medium)
+            <li class="flex items-center justify-between border-b border-gray-200 pb-2">
+                <span class="text-sm text-black">{{ $medium->utm_medium }}</span>
+                <span class="text-sm tinos-bold text-black">{{ number_format($medium->count) }}</span>
+            </li>
+            @endforeach
+        </ul>
+        @endif
+    </div>
+
+    {{-- Top Campaigns --}}
+    <div class="bg-white border-black border border-r-3 border-b-3 p-6">
+        <h3 class="text-lg tinos-bold text-black mb-4">Top Campaigns</h3>
+        @if($utmCampaigns->isEmpty())
+            <p class="text-sm text-gray-600">No UTM campaign data yet.</p>
+        @else
+        <ul class="space-y-3">
+            @foreach($utmCampaigns as $campaign)
+            <li class="flex items-center justify-between border-b border-gray-200 pb-2">
+                <span class="text-sm text-black">{{ $campaign->utm_campaign }}</span>
+                <span class="text-sm tinos-bold text-black">{{ number_format($campaign->count) }}</span>
+            </li>
+            @endforeach
+        </ul>
+        @endif
+    </div>
+</div>
+
 {{-- Bottom Row --}}
 <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
     {{-- Recent Posts --}}
@@ -154,6 +238,8 @@ const sortedDates = [...allDates].sort();
 const pageMap = Object.fromEntries(pageData.map(d => [d.date, d.views]));
 const postMap = Object.fromEntries(postData.map(d => [d.date, d.views]));
 
+const chartColors = ['#000000', '#374151', '#6B7280', '#9CA3AF', '#D1D5DB', '#E5E7EB'];
+
 const ctx = document.getElementById('trafficTrendChart').getContext('2d');
 new Chart(ctx, {
     type: 'line',
@@ -193,6 +279,32 @@ new Chart(ctx, {
         }
     }
 });
+
+// UTM Source Breakdown Chart
+const utmSourceData = @json($utmSourceBreakdown);
+if (utmSourceData.length > 0) {
+    new Chart(document.getElementById('utmSourceChart').getContext('2d'), {
+        type: 'doughnut',
+        data: {
+            labels: utmSourceData.map(d => d.utm_source),
+            datasets: [{
+                data: utmSourceData.map(d => d.count),
+                backgroundColor: chartColors.slice(0, utmSourceData.length),
+                borderWidth: 2,
+                borderColor: '#ffffff',
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: { font: { family: 'Tinos' }, padding: 16 }
+                }
+            }
+        }
+    });
+}
 </script>
 @endsection
 @endsection

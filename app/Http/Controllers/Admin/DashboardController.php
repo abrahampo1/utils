@@ -85,6 +85,49 @@ class DashboardController extends Controller
 
         $totalLinkClicks = LinkClick::where('clicked_at', '>=', $thirtyDaysAgo)->count();
 
+        // UTM analytics (all link clicks)
+        $utmSources = LinkClick::where('clicked_at', '>=', $thirtyDaysAgo)
+            ->whereNotNull('utm_source')
+            ->select('utm_source', DB::raw('COUNT(*) as count'))
+            ->groupBy('utm_source')
+            ->orderByDesc('count')
+            ->limit(5)
+            ->get();
+
+        $utmMediums = LinkClick::where('clicked_at', '>=', $thirtyDaysAgo)
+            ->whereNotNull('utm_medium')
+            ->select('utm_medium', DB::raw('COUNT(*) as count'))
+            ->groupBy('utm_medium')
+            ->orderByDesc('count')
+            ->limit(5)
+            ->get();
+
+        $utmCampaigns = LinkClick::where('clicked_at', '>=', $thirtyDaysAgo)
+            ->whereNotNull('utm_campaign')
+            ->select('utm_campaign', DB::raw('COUNT(*) as count'))
+            ->groupBy('utm_campaign')
+            ->orderByDesc('count')
+            ->limit(5)
+            ->get();
+
+        $utmSourceBreakdown = LinkClick::where('clicked_at', '>=', $thirtyDaysAgo)
+            ->whereNotNull('utm_source')
+            ->select('utm_source', DB::raw('COUNT(*) as count'))
+            ->groupBy('utm_source')
+            ->orderByDesc('count')
+            ->get();
+
+        // Top tracking links by clicks
+        $topTrackingLinks = TrackingLink::withCount(['clicks' => function ($query) use ($thirtyDaysAgo) {
+                $query->where('clicked_at', '>=', $thirtyDaysAgo);
+            }])
+            ->whereHas('clicks', function ($query) use ($thirtyDaysAgo) {
+                $query->where('clicked_at', '>=', $thirtyDaysAgo);
+            })
+            ->orderByDesc('clicks_count')
+            ->limit(5)
+            ->get();
+
         $counts = [
             'posts' => Post::count(),
             'published' => Post::published()->count(),
@@ -96,7 +139,8 @@ class DashboardController extends Controller
         return view('admin.dashboard.index', compact(
             'totalPostViews', 'totalPageViews', 'uniqueVisitors', 'totalLinkClicks',
             'pageViewsTrend', 'postViewsTrend',
-            'popularPosts', 'topPages', 'topReferrers', 'recentPosts', 'counts'
+            'popularPosts', 'topPages', 'topReferrers', 'recentPosts', 'counts',
+            'utmSources', 'utmMediums', 'utmCampaigns', 'utmSourceBreakdown', 'topTrackingLinks'
         ));
     }
 }
