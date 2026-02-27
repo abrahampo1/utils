@@ -6,7 +6,13 @@ use App\Http\Controllers\Admin\ImageController;
 use App\Http\Controllers\Admin\PostController;
 use App\Http\Controllers\Admin\ProjectController;
 use App\Http\Controllers\Admin\SettingsController;
+use App\Http\Controllers\Admin\TrackingLinkController;
+use App\Http\Controllers\TrackingLinkRedirectController;
 use Illuminate\Support\Facades\Route;
+
+Route::get('/go/{code}', TrackingLinkRedirectController::class)
+    ->middleware('throttle:tracking')
+    ->name('tracking.redirect');
 
 Route::prefix('dashboard')->group(function () {
     Route::get('login', [AuthController::class, 'showLogin'])->name('login');
@@ -26,5 +32,7 @@ Route::prefix('dashboard')->group(function () {
 
         Route::get('settings', [SettingsController::class, 'index'])->name('settings.index');
         Route::put('settings', [SettingsController::class, 'update'])->name('settings.update');
+
+        Route::resource('tracking-links', TrackingLinkController::class);
     });
 });

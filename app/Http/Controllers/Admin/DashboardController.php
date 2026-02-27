@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\LinkClick;
 use App\Models\PageView;
 use App\Models\Post;
 use App\Models\PostView;
 use App\Models\Project;
+use App\Models\TrackingLink;
 use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
@@ -81,15 +83,18 @@ class DashboardController extends Controller
 
         $recentPosts = Post::latest()->limit(5)->get(['id', 'title', 'status', 'created_at']);
 
+        $totalLinkClicks = LinkClick::where('clicked_at', '>=', $thirtyDaysAgo)->count();
+
         $counts = [
             'posts' => Post::count(),
             'published' => Post::published()->count(),
             'drafts' => Post::draft()->count(),
             'projects' => Project::count(),
+            'tracking_links' => TrackingLink::count(),
         ];
 
         return view('admin.dashboard.index', compact(
-            'totalPostViews', 'totalPageViews', 'uniqueVisitors',
+            'totalPostViews', 'totalPageViews', 'uniqueVisitors', 'totalLinkClicks',
             'pageViewsTrend', 'postViewsTrend',
             'popularPosts', 'topPages', 'topReferrers', 'recentPosts', 'counts'
         ));

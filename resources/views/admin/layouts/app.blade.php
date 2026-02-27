@@ -27,6 +27,10 @@
                                class="py-2 text-sm {{ request()->routeIs('projects.*') ? 'tinos-bold border-b-2 border-black' : 'text-gray-600 hover:text-black' }}">
                                 Projects
                             </a>
+                            <a href="{{ route('tracking-links.index') }}"
+                               class="py-2 text-sm {{ request()->routeIs('tracking-links.*') ? 'tinos-bold border-b-2 border-black' : 'text-gray-600 hover:text-black' }}">
+                                Links
+                            </a>
                             <a href="{{ route('images.index') }}"
                                class="py-2 text-sm {{ request()->routeIs('images.*') ? 'tinos-bold border-b-2 border-black' : 'text-gray-600 hover:text-black' }}">
                                 Images

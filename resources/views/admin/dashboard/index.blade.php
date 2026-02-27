@@ -18,8 +18,8 @@
         <div class="mt-1 text-3xl tinos-bold text-black">{{ number_format($uniqueVisitors) }}</div>
     </div>
     <div class="bg-white border-black border border-r-3 border-b-3 p-5">
-        <div class="text-sm text-gray-600 tinos-regular">Published Posts</div>
-        <div class="mt-1 text-3xl tinos-bold text-black">{{ $counts['published'] }}</div>
+        <div class="text-sm text-gray-600 tinos-regular">Link Clicks (30d)</div>
+        <div class="mt-1 text-3xl tinos-bold text-black">{{ number_format($totalLinkClicks) }}</div>
     </div>
 </div>
 
@@ -132,6 +132,10 @@
             <div class="border border-gray-200 p-3">
                 <div class="text-xs text-gray-500 tinos-regular">Projects</div>
                 <div class="text-xl tinos-bold">{{ $counts['projects'] }}</div>
+            </div>
+            <div class="border border-gray-200 p-3">
+                <div class="text-xs text-gray-500 tinos-regular">Tracking Links</div>
+                <div class="text-xl tinos-bold">{{ $counts['tracking_links'] }}</div>
             </div>
         </div>
     </div>
