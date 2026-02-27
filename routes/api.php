@@ -36,3 +36,5 @@ Route::get('categories', [CategoryApiController::class, 'index']);
 // Analytics
 Route::post('analytics/track', [AnalyticsApiController::class, 'track'])
     ->middleware('throttle:analytics');
+Route::post('analytics/page-view', [AnalyticsApiController::class, 'trackPageView'])
+    ->middleware('throttle:analytics');
