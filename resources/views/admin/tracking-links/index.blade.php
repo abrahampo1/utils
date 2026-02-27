@@ -24,7 +24,6 @@
             <tr class="border-b border-black">
                 <th class="py-3.5 pl-4 pr-3 text-left text-sm tinos-bold text-black">Name</th>
                 <th class="px-3 py-3.5 text-left text-sm tinos-bold text-black">Code</th>
-                <th class="px-3 py-3.5 text-left text-sm tinos-bold text-black">Destination</th>
                 <th class="px-3 py-3.5 text-left text-sm tinos-bold text-black">Clicks</th>
                 <th class="px-3 py-3.5 text-left text-sm tinos-bold text-black">Status</th>
                 <th class="px-3 py-3.5 text-right text-sm tinos-bold text-black">Actions</th>
@@ -35,10 +34,7 @@
             <tr class="border-b border-black">
                 <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm tinos-bold text-black">{{ $link->name }}</td>
                 <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-600">
-                    <code class="text-xs">/go/{{ $link->code }}</code>
-                </td>
-                <td class="px-3 py-4 text-sm text-gray-600 max-w-xs truncate" title="{{ $link->destination_url }}">
-                    {{ Str::limit($link->destination_url, 50) }}
+                    <code class="text-xs">?ref={{ $link->code }}</code>
                 </td>
                 <td class="whitespace-nowrap px-3 py-4 text-sm tinos-bold text-black">{{ number_format($link->clicks_count) }}</td>
                 <td class="whitespace-nowrap px-3 py-4 text-sm">
@@ -58,7 +54,7 @@
             </tr>
             @empty
             <tr>
-                <td colspan="6" class="px-3 py-8 text-center text-sm text-gray-600">No tracking links yet.</td>
+                <td colspan="5" class="px-3 py-8 text-center text-sm text-gray-600">No tracking links yet.</td>
             </tr>
             @endforelse
         </tbody>

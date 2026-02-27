@@ -2,14 +2,14 @@
 
 @section('header')
     {{ $trackingLink->name }}
-    <span class="text-base tinos-regular text-gray-500 ml-2">/go/{{ $trackingLink->code }}</span>
+    <span class="text-base tinos-regular text-gray-500 ml-2">?ref={{ $trackingLink->code }}</span>
 @endsection
 
 @section('content')
 {{-- Link Info --}}
 <div class="mb-6 flex items-center justify-between">
     <div class="text-sm text-gray-600 tinos-regular">
-        Destination: <a href="{{ $trackingLink->destination_url }}" target="_blank" class="text-black hover:underline">{{ Str::limit($trackingLink->destination_url, 80) }}</a>
+        Usage: append <code class="text-black">?ref={{ $trackingLink->code }}</code> to any URL
     </div>
     <div class="flex gap-3">
         <a href="{{ route('tracking-links.edit', $trackingLink) }}" class="bg-white text-black border-black border border-r-3 border-b-3 px-4 py-2 text-sm tinos-bold">Edit</a>

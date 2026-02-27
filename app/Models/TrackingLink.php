@@ -10,7 +10,7 @@ use Illuminate\Support\Str;
 class TrackingLink extends Model
 {
     protected $fillable = [
-        'name', 'code', 'destination_url', 'is_active',
+        'name', 'code', 'is_active',
     ];
 
     protected function casts(): array

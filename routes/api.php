@@ -38,3 +38,5 @@ Route::post('analytics/track', [AnalyticsApiController::class, 'track'])
     ->middleware('throttle:analytics');
 Route::post('analytics/page-view', [AnalyticsApiController::class, 'trackPageView'])
     ->middleware('throttle:analytics');
+Route::post('analytics/link-click', [AnalyticsApiController::class, 'trackLinkClick'])
+    ->middleware('throttle:analytics');

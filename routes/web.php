@@ -7,12 +7,7 @@ use App\Http\Controllers\Admin\PostController;
 use App\Http\Controllers\Admin\ProjectController;
 use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\TrackingLinkController;
-use App\Http\Controllers\TrackingLinkRedirectController;
 use Illuminate\Support\Facades\Route;
-
-Route::get('/go/{code}', TrackingLinkRedirectController::class)
-    ->middleware('throttle:tracking')
-    ->name('tracking.redirect');
 
 Route::prefix('dashboard')->group(function () {
     Route::get('login', [AuthController::class, 'showLogin'])->name('login');

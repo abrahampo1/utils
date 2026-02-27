@@ -35,7 +35,6 @@ class TrackingLinkController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'code' => ['required', 'string', 'max:255', 'unique:tracking_links,code', 'regex:/^[a-z0-9\-]+$/'],
-            'destination_url' => ['required', 'url', 'max:2048'],
             'is_active' => ['boolean'],
         ]);
 
@@ -128,7 +127,6 @@ class TrackingLinkController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'code' => ['required', 'string', 'max:255', 'unique:tracking_links,code,' . $trackingLink->id, 'regex:/^[a-z0-9\-]+$/'],
-            'destination_url' => ['required', 'url', 'max:2048'],
             'is_active' => ['boolean'],
         ]);
 
