@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\PageView;
 use App\Models\Post;
 use App\Models\PostView;
 use App\Models\Project;
@@ -14,13 +15,30 @@ class DashboardController extends Controller
     {
         $thirtyDaysAgo = now()->subDays(30);
 
-        $totalViews = PostView::where('viewed_at', '>=', $thirtyDaysAgo)->count();
+        // Post views
+        $totalPostViews = PostView::where('viewed_at', '>=', $thirtyDaysAgo)->count();
 
-        $uniqueVisitors = PostView::where('viewed_at', '>=', $thirtyDaysAgo)
-            ->distinct('session_id')
-            ->count('session_id');
+        // Page views
+        $totalPageViews = PageView::where('viewed_at', '>=', $thirtyDaysAgo)->count();
 
-        $viewsTrend = PostView::where('viewed_at', '>=', $thirtyDaysAgo)
+        // Unique visitors (combined from both tables)
+        $postSessions = PostView::where('viewed_at', '>=', $thirtyDaysAgo)
+            ->whereNotNull('session_id')
+            ->select('session_id');
+        $pageSessions = PageView::where('viewed_at', '>=', $thirtyDaysAgo)
+            ->whereNotNull('session_id')
+            ->select('session_id');
+        $uniqueVisitors = $postSessions->union($pageSessions)->distinct()->count('session_id');
+
+        // Page views trend
+        $pageViewsTrend = PageView::where('viewed_at', '>=', $thirtyDaysAgo)
+            ->select(DB::raw("DATE(viewed_at) as date"), DB::raw('COUNT(*) as views'))
+            ->groupBy('date')
+            ->orderBy('date')
+            ->get();
+
+        // Post views trend
+        $postViewsTrend = PostView::where('viewed_at', '>=', $thirtyDaysAgo)
             ->select(DB::raw("DATE(viewed_at) as date"), DB::raw('COUNT(*) as views'))
             ->groupBy('date')
             ->orderBy('date')
@@ -36,14 +54,29 @@ class DashboardController extends Controller
             ->limit(5)
             ->get(['id', 'title', 'slug']);
 
-        $topReferrers = PostView::where('viewed_at', '>=', $thirtyDaysAgo)
-            ->whereNotNull('referer')
-            ->where('referer', '!=', '')
-            ->select('referer', DB::raw('COUNT(*) as count'))
-            ->groupBy('referer')
+        // Top pages
+        $topPages = PageView::where('viewed_at', '>=', $thirtyDaysAgo)
+            ->select('path', DB::raw('COUNT(*) as count'), DB::raw('COUNT(DISTINCT session_id) as unique_count'))
+            ->groupBy('path')
             ->orderByDesc('count')
             ->limit(5)
             ->get();
+
+        // Top referrers (combined from both tables)
+        $postReferrers = PostView::where('viewed_at', '>=', $thirtyDaysAgo)
+            ->whereNotNull('referer')
+            ->where('referer', '!=', '')
+            ->select('referer');
+        $pageReferrers = PageView::where('viewed_at', '>=', $thirtyDaysAgo)
+            ->whereNotNull('referer')
+            ->where('referer', '!=', '');
+        $topReferrers = $pageReferrers->union($postReferrers)
+            ->get()
+            ->groupBy('referer')
+            ->map(fn($items, $referer) => (object) ['referer' => $referer, 'count' => $items->count()])
+            ->sortByDesc('count')
+            ->take(5)
+            ->values();
 
         $recentPosts = Post::latest()->limit(5)->get(['id', 'title', 'status', 'created_at']);
 
@@ -55,8 +88,9 @@ class DashboardController extends Controller
         ];
 
         return view('admin.dashboard.index', compact(
-            'totalViews', 'uniqueVisitors', 'viewsTrend',
-            'popularPosts', 'topReferrers', 'recentPosts', 'counts'
+            'totalPostViews', 'totalPageViews', 'uniqueVisitors',
+            'pageViewsTrend', 'postViewsTrend',
+            'popularPosts', 'topPages', 'topReferrers', 'recentPosts', 'counts'
         ));
     }
 }
