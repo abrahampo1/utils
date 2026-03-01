@@ -16,18 +16,6 @@ class PleskService
     protected bool $verifySsl;
     protected int $cacheTtl;
 
-    protected const ARTISAN_WHITELIST = [
-        'cache:clear',
-        'config:clear',
-        'route:clear',
-        'view:clear',
-        'optimize:clear',
-        'migrate --force',
-        'down',
-        'up',
-        'storage:link',
-    ];
-
     public function __construct()
     {
         $this->restUrl = config('plesk.rest_url', '');
@@ -335,7 +323,7 @@ class PleskService
         return $ssh;
     }
 
-    protected function runCliCommand(string $command, string $workingDir): ?string
+    public function runCliCommand(string $command, string $workingDir): ?string
     {
         try {
             $ssh = $this->sshConnect();
@@ -376,69 +364,10 @@ class PleskService
         return $this->getVhostRoot($name) . '/httpdocs';
     }
 
-    protected function getProjectRoot(string $name): string
+    public function getProjectRoot(string $name): string
     {
         // Git repo and artisan live in the vhost root, not in httpdocs
         return $this->getVhostRoot($name);
-    }
-
-    public function getGitCommits(string $name, int $limit = 10): array
-    {
-        $projectRoot = $this->getProjectRoot($name);
-
-        $format = '%H|||%h|||%s|||%an|||%ar';
-        $output = $this->runCliCommand(
-            "git log --format='{$format}' -n {$limit} 2>/dev/null",
-            $projectRoot
-        );
-
-        if (!$output || trim($output) === '') {
-            return [];
-        }
-
-        $commits = [];
-        foreach (explode("\n", trim($output)) as $line) {
-            $parts = explode('|||', $line);
-            if (count($parts) >= 5) {
-                $commits[] = [
-                    'hash' => trim($parts[0]),
-                    'short_hash' => trim($parts[1]),
-                    'message' => trim($parts[2]),
-                    'author' => trim($parts[3]),
-                    'date' => trim($parts[4]),
-                ];
-            }
-        }
-
-        return $commits;
-    }
-
-    public function gitPull(string $name): ?string
-    {
-        $this->clearCache($name);
-
-        return $this->runCliCommand('git pull 2>&1', $this->getProjectRoot($name));
-    }
-
-    public function runArtisan(string $name, string $command): ?string
-    {
-        if (!in_array($command, self::ARTISAN_WHITELIST)) {
-            return "Command not allowed: {$command}";
-        }
-
-        $this->clearCache($name);
-
-        return $this->runCliCommand("php artisan {$command} 2>&1", $this->getProjectRoot($name));
-    }
-
-    public function isLaravelSite(string $name): bool
-    {
-        return Cache::remember("plesk:is_laravel:{$name}", $this->cacheTtl, function () use ($name) {
-            $projectRoot = $this->getProjectRoot($name);
-            $output = $this->runCliCommand("test -f {$projectRoot}/artisan && echo 'yes' || echo 'no'", '/tmp');
-
-            return trim($output ?? '') === 'yes';
-        });
     }
 
     public function clearCache(?string $name = null): void
@@ -446,15 +375,9 @@ class PleskService
         if ($name) {
             Cache::forget("plesk:domain_detail:{$name}");
             Cache::forget("plesk:databases:{$name}");
-            Cache::forget("plesk:is_laravel:{$name}");
         }
 
         Cache::forget('plesk:domains');
         Cache::forget('plesk:server');
-    }
-
-    public function getArtisanWhitelist(): array
-    {
-        return self::ARTISAN_WHITELIST;
     }
 }

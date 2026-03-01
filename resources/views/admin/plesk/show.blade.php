@@ -2,12 +2,11 @@
 
 @section('header')
     {{ $domain }}
-    @if($isLaravel)
-        <span class="inline-flex border-black border px-2 py-0.5 text-xs tinos-regular-italic ml-2 align-middle">Laravel</span>
-    @endif
 @endsection
 
 @section('content')
+<meta name="csrf-token" content="{{ csrf_token() }}">
+
 {{-- Action Bar --}}
 <div class="mb-6 flex items-center justify-between">
     <a href="{{ route('plesk.index') }}" class="text-gray-600 hover:text-black text-sm tinos-regular">Back to sites</a>
@@ -65,18 +64,6 @@
                     <dd class="text-sm text-black tinos-bold mt-0.5">{{ $detail['ip'] }}</dd>
                 </div>
             @endif
-            @foreach($detail['hosting_properties'] as $propName => $propValue)
-                <div class="border-b border-gray-200 pb-2">
-                    <dt class="text-xs text-gray-500 tinos-regular">{{ str_replace('_', ' ', $propName) }}</dt>
-                    <dd class="text-sm text-black tinos-bold mt-0.5 break-all">{{ Str::limit($propValue, 80) }}</dd>
-                </div>
-            @endforeach
-            @if(isset($domainInfo['ip_addresses']) && is_array($domainInfo['ip_addresses']))
-                <div class="border-b border-gray-200 pb-2">
-                    <dt class="text-xs text-gray-500 tinos-regular">IP Addresses</dt>
-                    <dd class="text-sm text-black tinos-bold mt-0.5">{{ implode(', ', $domainInfo['ip_addresses']) }}</dd>
-                </div>
-            @endif
         </dl>
     </div>
 
@@ -99,55 +86,96 @@
     </div>
 </div>
 
-{{-- Git + Laravel --}}
-<div class="grid grid-cols-1 gap-6 {{ $isLaravel ? 'lg:grid-cols-2' : '' }} mb-8">
-    <div class="bg-white border-black border border-r-3 border-b-3 p-6">
-        <div class="flex items-center justify-between mb-4">
-            <h3 class="text-lg tinos-bold text-black">Git Commits</h3>
-            <form method="POST" action="{{ route('plesk.git-pull', $domain) }}"
-                  onsubmit="return confirm('Run git pull on {{ $domain }}?')">
-                @csrf
-                <button type="submit" class="bg-black text-white border-black border border-r-3 border-b-3 px-3 py-1 text-xs tinos-bold hover:bg-gray-800">
-                    Git Pull
-                </button>
-            </form>
-        </div>
-        @if(empty($commits))
-            <p class="text-sm text-gray-600 tinos-regular">No git repository found or no commits available.</p>
-        @else
-            <ul class="space-y-3">
-                @foreach($commits as $commit)
-                    <li class="border-b border-gray-200 pb-2">
-                        <div class="flex items-start gap-2">
-                            <code class="text-xs bg-gray-100 px-1.5 py-0.5 shrink-0">{{ $commit['short_hash'] }}</code>
-                            <span class="text-sm text-black tinos-regular">{{ Str::limit($commit['message'], 60) }}</span>
-                        </div>
-                        <div class="text-xs text-gray-500 tinos-regular mt-1">
-                            {{ $commit['author'] }} &middot; {{ $commit['date'] }}
-                        </div>
-                    </li>
-                @endforeach
-            </ul>
-        @endif
+{{-- SSH Terminal --}}
+<div class="bg-black border-black border border-r-3 border-b-3 mb-8">
+    <div class="flex items-center justify-between px-4 py-2 border-b border-gray-700">
+        <span class="text-green-400 text-sm font-mono font-bold">Terminal</span>
+        <span class="text-gray-500 text-xs font-mono">{{ $projectRoot }}</span>
     </div>
-
-    @if($isLaravel)
-        <div class="bg-white border-black border border-r-3 border-b-3 p-6">
-            <h3 class="text-lg tinos-bold text-black mb-4">Laravel Quick Actions</h3>
-            <div class="grid grid-cols-2 gap-2">
-                @foreach($artisanCommands as $cmd)
-                    <form method="POST" action="{{ route('plesk.artisan', $domain) }}"
-                          onsubmit="return confirm('Run \'php artisan {{ $cmd }}\' on {{ $domain }}?')">
-                        @csrf
-                        <input type="hidden" name="command" value="{{ $cmd }}">
-                        <button type="submit"
-                                class="w-full bg-white text-black border-black border border-r-3 border-b-3 px-3 py-2 text-xs tinos-bold hover:bg-gray-100 text-left">
-                            {{ $cmd }}
-                        </button>
-                    </form>
-                @endforeach
-            </div>
-        </div>
-    @endif
+    <div id="terminal-output" class="px-4 py-3 font-mono text-sm text-green-400 overflow-y-auto" style="max-height: 400px; min-height: 200px;">
+        <div class="text-gray-500">Connected to {{ $domain }}</div>
+    </div>
+    <div class="flex items-center px-4 py-2 border-t border-gray-700">
+        <span class="text-green-400 font-mono text-sm mr-2">$</span>
+        <input
+            type="text"
+            id="terminal-input"
+            class="flex-1 bg-transparent text-green-400 font-mono text-sm outline-none border-none placeholder-gray-600"
+            placeholder="Type a command..."
+            autocomplete="off"
+            spellcheck="false"
+        >
+    </div>
 </div>
+
+<script>
+(function() {
+    const output = document.getElementById('terminal-output');
+    const input = document.getElementById('terminal-input');
+    const sshUrl = @json(route('plesk.ssh', $domain));
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+    const history = [];
+    let historyIndex = -1;
+
+    function appendLine(text, className = 'text-green-400') {
+        const line = document.createElement('div');
+        line.className = className + ' whitespace-pre-wrap break-all';
+        line.textContent = text;
+        output.appendChild(line);
+        output.scrollTop = output.scrollHeight;
+    }
+
+    async function runCommand(command) {
+        appendLine('$ ' + command, 'text-gray-400');
+
+        try {
+            const res = await fetch(sshUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
+                    'Accept': 'application/json',
+                },
+                body: JSON.stringify({ command }),
+            });
+
+            const data = await res.json();
+            if (data.output && data.output.trim()) {
+                appendLine(data.output.trim());
+            }
+        } catch (err) {
+            appendLine('Connection error: ' + err.message, 'text-red-400');
+        }
+    }
+
+    input.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            const command = input.value.trim();
+            if (!command) return;
+
+            history.push(command);
+            historyIndex = history.length;
+            input.value = '';
+            runCommand(command);
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            if (historyIndex > 0) {
+                historyIndex--;
+                input.value = history[historyIndex];
+            }
+        } else if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            if (historyIndex < history.length - 1) {
+                historyIndex++;
+                input.value = history[historyIndex];
+            } else {
+                historyIndex = history.length;
+                input.value = '';
+            }
+        }
+    });
+
+    input.focus();
+})();
+</script>
 @endsection

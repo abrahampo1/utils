@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Services\PleskService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class PleskController extends Controller
@@ -50,49 +51,29 @@ class PleskController extends Controller
 
             $detail = $this->plesk->getDomainDetail($domain);
             $databases = $this->plesk->getDatabases($domain);
-            $commits = $this->plesk->getGitCommits($domain);
-            $isLaravel = $this->plesk->isLaravelSite($domain);
-            $artisanCommands = $this->plesk->getArtisanWhitelist();
+            $projectRoot = $this->plesk->getProjectRoot($domain);
         } catch (\Exception $e) {
             return redirect()->route('plesk.index')->with('error', 'Error loading domain: ' . $e->getMessage());
         }
 
         return view('admin.plesk.show', compact(
-            'domain', 'domainInfo', 'detail', 'databases', 'commits', 'isLaravel', 'artisanCommands'
+            'domain', 'domainInfo', 'detail', 'databases', 'projectRoot'
         ));
     }
 
-    public function gitPull(string $domain)
-    {
-        try {
-            $output = $this->plesk->gitPull($domain);
-
-            if ($output === null) {
-                return back()->with('error', 'Could not execute git pull. Check server logs.');
-            }
-
-            return back()->with('success', "Git pull executed: {$output}");
-        } catch (\Exception $e) {
-            return back()->with('error', 'Git pull failed: ' . $e->getMessage());
-        }
-    }
-
-    public function artisan(Request $request, string $domain)
+    public function sshCommand(Request $request, string $domain): JsonResponse
     {
         $request->validate([
-            'command' => ['required', 'string'],
+            'command' => ['required', 'string', 'max:1000'],
         ]);
 
         try {
-            $output = $this->plesk->runArtisan($domain, $request->input('command'));
+            $projectRoot = $this->plesk->getProjectRoot($domain);
+            $output = $this->plesk->runCliCommand($request->input('command'), $projectRoot);
 
-            if ($output === null) {
-                return back()->with('error', 'Could not execute artisan command. Check server logs.');
-            }
-
-            return back()->with('success', "Artisan output: {$output}");
+            return response()->json(['output' => $output ?? '']);
         } catch (\Exception $e) {
-            return back()->with('error', 'Artisan command failed: ' . $e->getMessage());
+            return response()->json(['output' => 'Error: ' . $e->getMessage()], 500);
         }
     }
 

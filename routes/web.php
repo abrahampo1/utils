@@ -42,9 +42,7 @@ Route::prefix('dashboard')->group(function () {
             Route::post('/refresh', [PleskController::class, 'refresh'])->name('plesk.refresh');
             Route::get('/{domain}', [PleskController::class, 'show'])->name('plesk.show')
                 ->where('domain', '[a-zA-Z0-9.\-]+');
-            Route::post('/{domain}/git-pull', [PleskController::class, 'gitPull'])->name('plesk.git-pull')
-                ->where('domain', '[a-zA-Z0-9.\-]+');
-            Route::post('/{domain}/artisan', [PleskController::class, 'artisan'])->name('plesk.artisan')
+            Route::post('/{domain}/ssh', [PleskController::class, 'sshCommand'])->name('plesk.ssh')
                 ->where('domain', '[a-zA-Z0-9.\-]+');
             Route::post('/{domain}/refresh', [PleskController::class, 'refresh'])->name('plesk.domain-refresh')
                 ->where('domain', '[a-zA-Z0-9.\-]+');
