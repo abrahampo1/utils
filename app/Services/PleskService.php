@@ -5,6 +5,8 @@ namespace App\Services;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use phpseclib3\Crypt\PublicKeyLoader;
+use phpseclib3\Net\SSH2;
 
 class PleskService
 {
@@ -302,52 +304,52 @@ class PleskService
         });
     }
 
-    // ── CLI Methods (REST first, XML-RPC fallback) ──
+    // ── SSH Command Execution ──
+
+    protected function sshConnect(): SSH2
+    {
+        $host = config('plesk.host');
+        $user = config('plesk.ssh_user', 'root');
+        $keyPath = config('plesk.ssh_key_path');
+        $password = config('plesk.ssh_password');
+
+        if (empty($host)) {
+            throw new \RuntimeException('PLESK_HOST not configured.');
+        }
+
+        $ssh = new SSH2($host);
+
+        if ($keyPath && file_exists($keyPath)) {
+            $key = PublicKeyLoader::load(file_get_contents($keyPath));
+            if (!$ssh->login($user, $key)) {
+                throw new \RuntimeException("SSH key auth failed for {$user}@{$host}");
+            }
+        } elseif ($password) {
+            if (!$ssh->login($user, $password)) {
+                throw new \RuntimeException("SSH password auth failed for {$user}@{$host}");
+            }
+        } else {
+            throw new \RuntimeException('No SSH credentials configured. Set PLESK_SSH_KEY_PATH or PLESK_SSH_PASSWORD in .env');
+        }
+
+        return $ssh;
+    }
 
     protected function runCliCommand(string $command, string $workingDir): ?string
     {
-        // Try REST CLI endpoint first
         try {
-            $response = $this->restClient()->post('/cli/commands', [
-                'command' => 'bash',
-                'args' => ['-c', "cd {$workingDir} && {$command}"],
+            $ssh = $this->sshConnect();
+            $output = $ssh->exec("cd {$workingDir} && {$command}");
+
+            return $output !== false ? $output : null;
+        } catch (\Exception $e) {
+            Log::error('Plesk SSH command failed', [
+                'command' => $command,
+                'dir' => $workingDir,
+                'error' => $e->getMessage(),
             ]);
-
-            if ($response->successful()) {
-                $data = $response->json();
-                return $data['stdout'] ?? $data['output'] ?? '';
-            }
-        } catch (\Exception $e) {
-            Log::info('Plesk REST CLI not available, trying XML-RPC', ['error' => $e->getMessage()]);
+            return null;
         }
-
-        // Fallback to XML-RPC server extension
-        try {
-            $fullCommand = "cd {$workingDir} && {$command}";
-            $escapedCommand = htmlspecialchars($fullCommand, ENT_XML1, 'UTF-8');
-
-            $xml = <<<XML
-            <packet>
-                <server>
-                    <shell_exec>
-                        <cmd>{$escapedCommand}</cmd>
-                    </shell_exec>
-                </server>
-            </packet>
-            XML;
-
-            $result = $this->xmlrpcRequest($xml);
-
-            if ($result) {
-                return $result['server']['shell_exec']['result']['stdout']
-                    ?? $result['server']['shell_exec']['result']['output']
-                    ?? null;
-            }
-        } catch (\Exception $e) {
-            Log::error('Plesk XML-RPC CLI failed', ['error' => $e->getMessage()]);
-        }
-
-        return null;
     }
 
     protected function getVhostRoot(string $name): string
