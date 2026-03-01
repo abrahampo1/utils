@@ -218,24 +218,30 @@ class PleskService
             }
         }
 
-        // Disk usage — can be single or list
-        $diskItems = $raw['data']['disk_usage'] ?? [];
-        // Sometimes nested under 'usage'
-        if (isset($diskItems['usage'])) {
-            $diskItems = $diskItems['usage'];
-        }
-        if (isset($diskItems['name'])) {
-            $diskItems = [$diskItems]; // single item
+        // Disk usage — Plesk XML-RPC returns this as a flat map after simplexml:
+        // {httpdocs: "123456", logs: "789", dbases: "456", ...}
+        // or sometimes nested under 'usage', or as [{name, value}] pairs
+        $diskData = $raw['data']['disk_usage'] ?? [];
+
+        if (isset($diskData['usage'])) {
+            $diskData = $diskData['usage'];
         }
 
         $totalBytes = 0;
-        if (is_array($diskItems)) {
-            foreach ($diskItems as $item) {
-                if (is_array($item) && isset($item['value'])) {
-                    $totalBytes += (int) $item['value'];
+        if (is_array($diskData)) {
+            foreach ($diskData as $key => $value) {
+                if (is_numeric($value)) {
+                    // Flat map: {httpdocs: "123456", logs: "789"}
+                    $totalBytes += (int) $value;
+                } elseif (is_array($value) && isset($value['value'])) {
+                    // Structured: [{name: "httpdocs", value: "123456"}]
+                    $totalBytes += (int) $value['value'];
                 }
             }
         }
+
+        Log::debug('Plesk disk_usage raw', ['domain' => $name, 'raw' => $diskData, 'total' => $totalBytes]);
+
         if ($totalBytes > 0) {
             if ($totalBytes > 1073741824) {
                 $info['disk_usage'] = number_format($totalBytes / 1073741824, 2) . ' GB';
