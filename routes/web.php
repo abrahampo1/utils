@@ -6,8 +6,13 @@ use App\Http\Controllers\Admin\ImageController;
 use App\Http\Controllers\Admin\PostController;
 use App\Http\Controllers\Admin\ProjectController;
 use App\Http\Controllers\Admin\SettingsController;
+use App\Http\Controllers\Admin\PleskController;
+use App\Http\Controllers\Admin\RedirectLinkController;
 use App\Http\Controllers\Admin\TrackingLinkController;
+use App\Http\Controllers\RedirectController;
 use Illuminate\Support\Facades\Route;
+
+Route::get('/r/{code}', [RedirectController::class, 'handle'])->name('redirect.handle');
 
 Route::prefix('dashboard')->group(function () {
     Route::get('login', [AuthController::class, 'showLogin'])->name('login');
@@ -29,5 +34,20 @@ Route::prefix('dashboard')->group(function () {
         Route::put('settings', [SettingsController::class, 'update'])->name('settings.update');
 
         Route::resource('tracking-links', TrackingLinkController::class);
+        Route::resource('redirect-links', RedirectLinkController::class);
+
+        Route::prefix('plesk')->group(function () {
+            Route::get('/', [PleskController::class, 'index'])->name('plesk.index');
+            Route::get('/server', [PleskController::class, 'server'])->name('plesk.server');
+            Route::post('/refresh', [PleskController::class, 'refresh'])->name('plesk.refresh');
+            Route::get('/{domain}', [PleskController::class, 'show'])->name('plesk.show')
+                ->where('domain', '[a-zA-Z0-9.\-]+');
+            Route::post('/{domain}/git-pull', [PleskController::class, 'gitPull'])->name('plesk.git-pull')
+                ->where('domain', '[a-zA-Z0-9.\-]+');
+            Route::post('/{domain}/artisan', [PleskController::class, 'artisan'])->name('plesk.artisan')
+                ->where('domain', '[a-zA-Z0-9.\-]+');
+            Route::post('/{domain}/refresh', [PleskController::class, 'refresh'])->name('plesk.domain-refresh')
+                ->where('domain', '[a-zA-Z0-9.\-]+');
+        });
     });
 });
