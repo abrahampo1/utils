@@ -20,7 +20,8 @@ class PleskController extends Controller
         try {
             $domains = $this->plesk->getDomains();
         } catch (\Exception $e) {
-            return redirect()->route('dashboard')->with('error', 'Could not connect to Plesk: ' . $e->getMessage());
+            $domains = [];
+            session()->flash('error', 'Plesk API: ' . $e->getMessage());
         }
 
         return view('admin.plesk.index', compact('domains'));

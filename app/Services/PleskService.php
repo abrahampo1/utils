@@ -81,21 +81,25 @@ class PleskService
 
     public function getDomains(): array
     {
-        return Cache::remember('plesk:domains', $this->cacheTtl, function () {
-            try {
-                $response = $this->restClient()->get('/domains');
+        $cached = Cache::get('plesk:domains');
+        if ($cached !== null) {
+            return $cached;
+        }
 
-                if (!$response->successful()) {
-                    Log::error('Plesk getDomains failed', ['status' => $response->status()]);
-                    return [];
-                }
+        if (empty($this->restUrl) || empty($this->apiKey)) {
+            throw new \RuntimeException('Plesk API not configured. Set PLESK_HOST and PLESK_API_KEY in .env');
+        }
 
-                return $response->json() ?? [];
-            } catch (\Exception $e) {
-                Log::error('Plesk getDomains exception', ['error' => $e->getMessage()]);
-                return [];
-            }
-        });
+        $response = $this->restClient()->get('/domains');
+
+        if (!$response->successful()) {
+            throw new \RuntimeException('Plesk API error: HTTP ' . $response->status() . ' — ' . $response->body());
+        }
+
+        $domains = $response->json() ?? [];
+        Cache::put('plesk:domains', $domains, $this->cacheTtl);
+
+        return $domains;
     }
 
     public function getDomain(string $name): ?array
@@ -113,20 +117,21 @@ class PleskService
 
     public function getServerInfo(): ?array
     {
-        return Cache::remember('plesk:server', $this->cacheTtl, function () {
-            try {
-                $response = $this->restClient()->get('/server');
+        $cached = Cache::get('plesk:server');
+        if ($cached !== null) {
+            return $cached;
+        }
 
-                if (!$response->successful()) {
-                    return null;
-                }
+        $response = $this->restClient()->get('/server');
 
-                return $response->json();
-            } catch (\Exception $e) {
-                Log::error('Plesk getServerInfo exception', ['error' => $e->getMessage()]);
-                return null;
-            }
-        });
+        if (!$response->successful()) {
+            return null;
+        }
+
+        $server = $response->json();
+        Cache::put('plesk:server', $server, $this->cacheTtl);
+
+        return $server;
     }
 
     // ── XML-RPC Methods ──
