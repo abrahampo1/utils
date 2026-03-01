@@ -258,37 +258,49 @@ class PleskService
         return null;
     }
 
-    protected function getDocRoot(string $name): ?string
+    protected function getVhostRoot(string $name): string
     {
+        return "/var/www/vhosts/{$name}";
+    }
+
+    protected function getDocRoot(string $name): string
+    {
+        // Try REST domain info first (returns absolute path)
+        $domain = $this->getDomain($name);
+        if (isset($domain['www_root']) && str_starts_with($domain['www_root'], '/')) {
+            return $domain['www_root'];
+        }
+
+        // XML-RPC www_root is relative to vhost — build absolute path
         $detail = $this->getDomainDetail($name);
+        $properties = $detail['data']['hosting']['vrt_hst']['property'] ?? null;
 
-        $docRoot = $detail['data']['hosting']['vrt_hst']['property'] ?? null;
-
-        if (is_array($docRoot)) {
-            foreach ((isset($docRoot['name']) ? [$docRoot] : $docRoot) as $prop) {
+        if (is_array($properties)) {
+            foreach ((isset($properties['name']) ? [$properties] : $properties) as $prop) {
                 if (($prop['name'] ?? '') === 'www_root') {
-                    return $prop['value'];
+                    $relative = $prop['value'];
+                    return $this->getVhostRoot($name) . '/' . $relative;
                 }
             }
         }
 
-        // Fallback: try REST domain info
-        $domain = $this->getDomain($name);
-        return $domain['www_root'] ?? $domain['hosting']['www_root'] ?? "/var/www/vhosts/{$name}/httpdocs";
+        return $this->getVhostRoot($name) . '/httpdocs';
+    }
+
+    protected function getProjectRoot(string $name): string
+    {
+        // Git repo and artisan live in the vhost root, not in httpdocs
+        return $this->getVhostRoot($name);
     }
 
     public function getGitCommits(string $name, int $limit = 10): array
     {
-        $docRoot = $this->getDocRoot($name);
-
-        if (!$docRoot) {
-            return [];
-        }
+        $projectRoot = $this->getProjectRoot($name);
 
         $format = '%H|||%h|||%s|||%an|||%ar';
         $output = $this->runCliCommand(
-            "git log --oneline --format='{$format}' -n {$limit} 2>/dev/null",
-            $docRoot
+            "git log --format='{$format}' -n {$limit} 2>/dev/null",
+            $projectRoot
         );
 
         if (!$output || trim($output) === '') {
@@ -314,15 +326,9 @@ class PleskService
 
     public function gitPull(string $name): ?string
     {
-        $docRoot = $this->getDocRoot($name);
-
-        if (!$docRoot) {
-            return null;
-        }
-
         $this->clearCache($name);
 
-        return $this->runCliCommand('git pull 2>&1', $docRoot);
+        return $this->runCliCommand('git pull 2>&1', $this->getProjectRoot($name));
     }
 
     public function runArtisan(string $name, string $command): ?string
@@ -331,28 +337,15 @@ class PleskService
             return "Command not allowed: {$command}";
         }
 
-        $docRoot = $this->getDocRoot($name);
-
-        if (!$docRoot) {
-            return null;
-        }
-
         $this->clearCache($name);
 
-        return $this->runCliCommand("php artisan {$command} 2>&1", $docRoot);
+        return $this->runCliCommand("php artisan {$command} 2>&1", $this->getProjectRoot($name));
     }
 
     public function isLaravelSite(string $name): bool
     {
         return Cache::remember("plesk:is_laravel:{$name}", $this->cacheTtl, function () use ($name) {
-            $docRoot = $this->getDocRoot($name);
-
-            if (!$docRoot) {
-                return false;
-            }
-
-            // Check parent of docroot (Laravel's public/ is usually the docroot)
-            $projectRoot = dirname($docRoot);
+            $projectRoot = $this->getProjectRoot($name);
             $output = $this->runCliCommand("test -f {$projectRoot}/artisan && echo 'yes' || echo 'no'", '/tmp');
 
             return trim($output ?? '') === 'yes';
