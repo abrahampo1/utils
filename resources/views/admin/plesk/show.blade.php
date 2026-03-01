@@ -21,7 +21,6 @@
 
 {{-- Stat Cards --}}
 <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-8">
-    {{-- Status --}}
     <div class="bg-white border-black border border-r-3 border-b-3 p-5">
         <div class="text-sm text-gray-600 tinos-regular">Status</div>
         <div class="mt-1 text-xl tinos-bold text-black">
@@ -33,83 +32,44 @@
         </div>
     </div>
 
-    {{-- PHP Version --}}
     <div class="bg-white border-black border border-r-3 border-b-3 p-5">
         <div class="text-sm text-gray-600 tinos-regular">PHP Version</div>
-        <div class="mt-1 text-xl tinos-bold text-black">
-            {{ $domainInfo['php_version'] ?? $domainInfo['hosting']['php_version'] ?? '—' }}
-        </div>
+        <div class="mt-1 text-xl tinos-bold text-black">{{ $detail['php_version'] ?? '—' }}</div>
     </div>
 
-    {{-- Disk Usage --}}
     <div class="bg-white border-black border border-r-3 border-b-3 p-5">
         <div class="text-sm text-gray-600 tinos-regular">Disk Usage</div>
-        <div class="mt-1 text-xl tinos-bold text-black">
-            @php
-                $diskUsage = $detail['data']['disk_usage']['usage'] ?? null;
-                if (is_array($diskUsage)) {
-                    $totalBytes = 0;
-                    foreach ((isset($diskUsage['name']) ? [$diskUsage] : $diskUsage) as $item) {
-                        if (($item['name'] ?? '') === 'httpdocs') {
-                            $totalBytes = (int) ($item['value'] ?? 0);
-                            break;
-                        }
-                    }
-                    if ($totalBytes === 0) {
-                        foreach ((isset($diskUsage['name']) ? [$diskUsage] : $diskUsage) as $item) {
-                            $totalBytes += (int) ($item['value'] ?? 0);
-                        }
-                    }
-                    echo $totalBytes > 0 ? number_format($totalBytes / 1048576, 1) . ' MB' : '—';
-                } else {
-                    echo '—';
-                }
-            @endphp
-        </div>
+        <div class="mt-1 text-xl tinos-bold text-black">{{ $detail['disk_usage'] ?? '—' }}</div>
     </div>
 
-    {{-- SSL --}}
     <div class="bg-white border-black border border-r-3 border-b-3 p-5">
         <div class="text-sm text-gray-600 tinos-regular">SSL</div>
-        <div class="mt-1 text-xl tinos-bold text-black">
-            @php
-                $hosting = $detail['data']['hosting']['vrt_hst']['property'] ?? [];
-                $sslEnabled = false;
-                foreach ((isset($hosting['name']) ? [$hosting] : $hosting) as $prop) {
-                    if (($prop['name'] ?? '') === 'ssl' && ($prop['value'] ?? '') === 'true') {
-                        $sslEnabled = true;
-                        break;
-                    }
-                }
-            @endphp
-            {{ $sslEnabled ? 'Enabled' : 'Disabled' }}
-        </div>
+        <div class="mt-1 text-xl tinos-bold text-black">{{ $detail['ssl'] ? 'Enabled' : 'Disabled' }}</div>
     </div>
 </div>
 
 {{-- Hosting Details + Databases --}}
 <div class="grid grid-cols-1 gap-6 lg:grid-cols-2 mb-8">
-    {{-- Hosting Details --}}
     <div class="bg-white border-black border border-r-3 border-b-3 p-6">
         <h3 class="text-lg tinos-bold text-black mb-4">Hosting Details</h3>
         <dl class="space-y-3">
-            @if(isset($domainInfo['www_root']) || isset($domainInfo['hosting']['www_root']))
+            @if($detail['doc_root'])
                 <div class="border-b border-gray-200 pb-2">
                     <dt class="text-xs text-gray-500 tinos-regular">Document Root</dt>
-                    <dd class="text-sm text-black tinos-bold mt-0.5 break-all">{{ $domainInfo['www_root'] ?? $domainInfo['hosting']['www_root'] ?? '—' }}</dd>
+                    <dd class="text-sm text-black tinos-bold mt-0.5 break-all">{{ $detail['doc_root'] }}</dd>
                 </div>
             @endif
-            @php
-                $properties = $detail['data']['hosting']['vrt_hst']['property'] ?? [];
-                $properties = isset($properties['name']) ? [$properties] : $properties;
-            @endphp
-            @foreach($properties as $prop)
-                @if(isset($prop['name']) && isset($prop['value']) && is_string($prop['value']))
-                    <div class="border-b border-gray-200 pb-2">
-                        <dt class="text-xs text-gray-500 tinos-regular">{{ str_replace('_', ' ', $prop['name']) }}</dt>
-                        <dd class="text-sm text-black tinos-bold mt-0.5 break-all">{{ Str::limit($prop['value'], 80) }}</dd>
-                    </div>
-                @endif
+            @if($detail['ip'])
+                <div class="border-b border-gray-200 pb-2">
+                    <dt class="text-xs text-gray-500 tinos-regular">IP Address</dt>
+                    <dd class="text-sm text-black tinos-bold mt-0.5">{{ $detail['ip'] }}</dd>
+                </div>
+            @endif
+            @foreach($detail['hosting_properties'] as $propName => $propValue)
+                <div class="border-b border-gray-200 pb-2">
+                    <dt class="text-xs text-gray-500 tinos-regular">{{ str_replace('_', ' ', $propName) }}</dt>
+                    <dd class="text-sm text-black tinos-bold mt-0.5 break-all">{{ Str::limit($propValue, 80) }}</dd>
+                </div>
             @endforeach
             @if(isset($domainInfo['ip_addresses']) && is_array($domainInfo['ip_addresses']))
                 <div class="border-b border-gray-200 pb-2">
@@ -120,7 +80,6 @@
         </dl>
     </div>
 
-    {{-- Databases --}}
     <div class="bg-white border-black border border-r-3 border-b-3 p-6">
         <h3 class="text-lg tinos-bold text-black mb-4">Databases</h3>
         @if(empty($databases))
@@ -142,7 +101,6 @@
 
 {{-- Git + Laravel --}}
 <div class="grid grid-cols-1 gap-6 {{ $isLaravel ? 'lg:grid-cols-2' : '' }} mb-8">
-    {{-- Git Commits --}}
     <div class="bg-white border-black border border-r-3 border-b-3 p-6">
         <div class="flex items-center justify-between mb-4">
             <h3 class="text-lg tinos-bold text-black">Git Commits</h3>
@@ -173,7 +131,6 @@
         @endif
     </div>
 
-    {{-- Laravel Quick Actions --}}
     @if($isLaravel)
         <div class="bg-white border-black border border-r-3 border-b-3 p-6">
             <h3 class="text-lg tinos-bold text-black mb-4">Laravel Quick Actions</h3>

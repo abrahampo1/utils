@@ -136,7 +136,7 @@ class PleskService
 
     // ── XML-RPC Methods ──
 
-    public function getDomainDetail(string $name): ?array
+    public function getDomainDetailRaw(string $name): ?array
     {
         return Cache::remember("plesk:domain_detail:{$name}", $this->cacheTtl, function () use ($name) {
             $xml = <<<XML
@@ -165,6 +165,92 @@ class PleskService
 
             return $result['webspace']['get']['result'] ?? null;
         });
+    }
+
+    /**
+     * Parse the raw XML-RPC detail into clean structured data.
+     */
+    public function getDomainDetail(string $name): array
+    {
+        $raw = $this->getDomainDetailRaw($name);
+
+        $info = [
+            'php_version' => null,
+            'disk_usage' => null,
+            'ssl' => false,
+            'doc_root' => null,
+            'ip' => null,
+            'hosting_properties' => [],
+        ];
+
+        if (!$raw) {
+            return $info;
+        }
+
+        // Gen info
+        $genInfo = $raw['data']['gen_info'] ?? [];
+        $info['ip'] = $genInfo['dns_ip_address'] ?? $genInfo['ip_address'] ?? null;
+
+        // Hosting properties — can be single assoc array or list of assoc arrays
+        $properties = $raw['data']['hosting']['vrt_hst']['property'] ?? [];
+        if (isset($properties['name'])) {
+            $properties = [$properties]; // single property → wrap in array
+        }
+
+        foreach ($properties as $prop) {
+            $propName = $prop['name'] ?? null;
+            $propValue = $prop['value'] ?? null;
+
+            if (!$propName || !is_string($propValue)) {
+                continue;
+            }
+
+            $info['hosting_properties'][$propName] = $propValue;
+
+            if (in_array($propName, ['php_handler_id', 'php_version'])) {
+                $info['php_version'] = $propValue;
+            }
+            if ($propName === 'www_root') {
+                $info['doc_root'] = $propValue;
+            }
+            if ($propName === 'ssl' && $propValue === 'true') {
+                $info['ssl'] = true;
+            }
+        }
+
+        // Disk usage — can be single or list
+        $diskItems = $raw['data']['disk_usage'] ?? [];
+        // Sometimes nested under 'usage'
+        if (isset($diskItems['usage'])) {
+            $diskItems = $diskItems['usage'];
+        }
+        if (isset($diskItems['name'])) {
+            $diskItems = [$diskItems]; // single item
+        }
+
+        $totalBytes = 0;
+        if (is_array($diskItems)) {
+            foreach ($diskItems as $item) {
+                if (is_array($item) && isset($item['value'])) {
+                    $totalBytes += (int) $item['value'];
+                }
+            }
+        }
+        if ($totalBytes > 0) {
+            if ($totalBytes > 1073741824) {
+                $info['disk_usage'] = number_format($totalBytes / 1073741824, 2) . ' GB';
+            } else {
+                $info['disk_usage'] = number_format($totalBytes / 1048576, 1) . ' MB';
+            }
+        }
+
+        // Stat (traffic etc)
+        $stat = $raw['data']['stat'] ?? [];
+        if (isset($stat['traffic'])) {
+            $info['traffic'] = $stat['traffic'];
+        }
+
+        return $info;
     }
 
     public function getDatabases(string $name): array
@@ -273,15 +359,10 @@ class PleskService
 
         // XML-RPC www_root is relative to vhost — build absolute path
         $detail = $this->getDomainDetail($name);
-        $properties = $detail['data']['hosting']['vrt_hst']['property'] ?? null;
+        $relative = $detail['doc_root'] ?? null;
 
-        if (is_array($properties)) {
-            foreach ((isset($properties['name']) ? [$properties] : $properties) as $prop) {
-                if (($prop['name'] ?? '') === 'www_root') {
-                    $relative = $prop['value'];
-                    return $this->getVhostRoot($name) . '/' . $relative;
-                }
-            }
+        if ($relative) {
+            return $this->getVhostRoot($name) . '/' . $relative;
         }
 
         return $this->getVhostRoot($name) . '/httpdocs';
